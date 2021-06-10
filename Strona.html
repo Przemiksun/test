@@ -1,0 +1,162 @@
+
+        <!DOCTYPE html>
+        <html lang="en">
+         
+        <head>
+            <meta charset="UTF-8">
+            <meta http-equiv="X-UA-Compatible" content="IE=edge">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Document</title>
+            <style>
+                .kreska {
+                    text-decoration: line-through;
+                }
+            </style>
+        </head>
+         
+        <body background="tlo2.png">
+            
+            
+            <!-- Lista gdzie będą wyświetlane dane odebrane z backendu -->
+            <ul class="lista">
+         
+            </ul>
+         
+            <!-- Formularz za pomocą którego wyślemy dane na backend -->
+            <form method="post">
+                nazwisko: <input type="text" class="name" />
+                wiek: <input type="text" class="age" />
+                kolor: <input type="text" class="color" />
+                <button> dodaj </button>
+            </form>
+         
+            <button class="delete"> usun </button>
+
+            
+            <!-- zaczynamy skrypt -->
+            <script>
+         
+                //tablica w której przechowujemy id rekordów do usunięcia
+                const toDelete = []
+         
+         
+         
+         
+                //funkcja showData wyświetla na stronie dane ze zmiennej 'data'. data - tablica otrzymana od Flaska
+                function showData(data) {
+                    //pobieramy listę, gdzie będziemy wyświetlać pobrane dane
+                    const lista = document.querySelector(".lista") 
+         
+         
+                    //usuwamy wszystkie dotychczasowe wpisy (elementy <li>) z listy. Czyścimy/zerujemy listę
+                    while (lista.firstChild) {
+                        lista.removeChild(lista.firstChild);
+                    }
+         
+                    //pętla przebiegająca wszystkie elementy tablicy data
+                    data.forEach(item => {
+         
+                        //tworzymy nowy element <li>
+                        const li = document.createElement("li") 
+         
+                        //dodajemy do niego kolejny element z tablicy data
+                        //item[0] - id przesłanego rekordu
+                        //item[1] - nazwisko
+                        //item[2] - wiek
+                        //item[3] - kolor
+                        li.textContent = item[0] + " " + item[1] + " " + item[2] + " " + item[3] 
+                        //dopisujemy taki element <li> do listy <ul>
+                        lista.appendChild(li) 
+         
+                        //do nowego elementu listy dodajemy zdanienie
+                        li.addEventListener("click", () => {
+                            //dodajemy/usuwamy klasę 'kreska' do elementu li
+                            li.classList.toggle("kreska")
+                            //usuwamy/dodajemy do tablicy toDelete identyfikator rekordu przeznaczonego do usinięcia
+                            if (toDelete.includes(item[0]))
+                                toDelete = toDelete.filter(a => a !== item[0])
+                            else
+                                toDelete.push(item[0])
+         
+                        })
+                    })
+                }
+         
+         
+         
+         
+                //dodajmy zdarzenie do całej strony. Wykonuje się ono w momencie załadowania strony
+                document.addEventListener('DOMContentLoaded', function () {
+                    //pobieramy dane od flaska: wszystkie rekordy z bazy
+                    //i wywołujemy na nich funkcję showData, przekazując jej tablicę z danymi
+                    fetch('http://localhost:5005').then(response => {
+                        return response.json()
+                    }).then(data => showData(data))
+                }, false);
+         
+         
+                //pobieramy elementy formularza 
+                const btn = document.querySelector("button") //pobieramy przycisk z formularza
+                const name = document.querySelector(".name") //pobieramy pole testowe z formularza
+                const age = document.querySelector(".age") //pobieramy pole tkestowe z formularza
+                const color = document.querySelector(".color") //pobieramy pole tkestowe z formularza
+         
+         
+                //dodajemy zdarzenie do przycisku; po kliknięciu na przycisk wykonuje się funkcja (e) => {...}
+                //e - obiekt reprezentujący zdarzenie kliknięcia
+                btn.addEventListener("click", (e) => {
+                    //blokujemy przładowanie strony
+                    e.preventDefault() 
+                    //pobieramy wpisane przez użytkownika teksty w pola input
+                    const nameTxt = name.value 
+                    const ageTxt = age.value
+                    const colorTxt = color.value
+         
+                    //tworzymy z nich obiekt do wysłania do flaska
+                    const data = {
+                        name: nameTxt,
+                        age: ageTxt,
+                        color: colorTxt
+                    }
+                    //fetch wysyła na podany adres (adres na którym działa flask) dane z formularza
+                    fetch('http://localhost:5005', {
+                        method: 'post',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(data) //dane do wysłania
+                    }).then(function (response) {
+                        return response.json(); //fetch odebrał od flaska dane (tablica z autorami), które 'odkodowujemy' z formatu json
+                    }).then(odp => {
+                        showData(odp) //tutaj już mamy tablice w czystej postaci - tablica napisów; przekazujemy ją do funkcji która te dane wyświetli na stonie
+                    })
+                })
+         
+                //pobieramy przyck usuń
+                const del = document.querySelector(".delete")
+         
+                //dodajemy do niego zdarzenie kliknięcia
+                del.addEventListener("click", () => {
+                    fetch('http://localhost:5005/delete', {
+                        method: 'delete',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(toDelete) //dane do wysłania: tablica indentyfikatorów 
+         
+                    }).then(function (response) {
+                        return response.json(); //fetch odebrał od flaska dane (tablica z zadaniami), które 'odkodowujemy' z formatu json
+                    }).then(odp => {
+                        showData(odp) //tutaj już mamy tablice w czystej postaci - tablica napisów; przekazujemy ją do funkcji która te dane wyświetli na stonie
+                    })
+         
+                    //czyścimy tablicę żeby można było od nowa zbierać w niej nowe id do usunięcia
+                    toDelete = []
+                })
+         
+            </script>
+         
+        </body>
+         
+        </html>
+        
